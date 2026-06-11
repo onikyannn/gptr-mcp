@@ -284,11 +284,6 @@ def run_server():
     # Determine transport based on environment
     transport = os.getenv("MCP_TRANSPORT", "stdio").lower()
     
-    # Auto-detect Docker environment
-    if os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
-        transport = "sse"
-        logger.info("Docker environment detected, using SSE transport")
-    
     # Add startup message
     logger.info(f"Starting GPT Researcher MCP Server with {transport} transport...")
     print(f"🚀 GPT Researcher MCP Server starting with {transport} transport...")
