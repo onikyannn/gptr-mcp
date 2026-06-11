@@ -36,6 +36,45 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_REPORT_TYPES = {
+    "research_report",
+    "resource_report",
+    "outline_report",
+    "custom_report",
+    "detailed_report",
+    "subtopic_report",
+    "deep",
+}
+
+
+def _clean_list(values: Optional[List[Any]], limit: int = 20) -> List[str]:
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        raise TypeError("Expected a list")
+    return [str(value).strip() for value in values if str(value or "").strip()][:limit]
+    
+def _clean_source_urls(source_urls: Optional[List[str]]) -> List[str]:
+    values = _clean_list(source_urls, 20)
+    invalid_urls = [
+        url for url in values if not url.startswith(("http://", "https://"))
+    ]
+    if invalid_urls:
+        raise ValueError(
+            "source_urls must contain only http:// or https:// URLs: "
+            + ", ".join(invalid_urls)
+        )
+    return values
+    
+def _resolve_report_type(report_type: Optional[str]) -> str:
+    value = str(report_type or "research_report").strip()
+    if value not in SUPPORTED_REPORT_TYPES:
+        raise ValueError(
+            "Unsupported report_type. Expected one of: "
+            + ", ".join(sorted(SUPPORTED_REPORT_TYPES))
+        )
+    return value
+    
 # Initialize FastMCP server
 mcp = FastMCP(
     name="GPT Researcher"
@@ -91,13 +130,23 @@ async def research_resource(topic: str) -> str:
 
 
 @mcp.tool()
-async def deep_research(query: str) -> Dict[str, Any]:
+async def deep_research(
+    query: str,
+    report_type: Optional[str] = None,
+    source_urls: Optional[List[str]] = None,
+    complement_source_urls: bool = True,
+    query_domains: Optional[List[str]] = None,
+) -> Dict[str, Any]:
     """
-    Conduct a web deep research on a given query using GPT Researcher. 
+    Conduct a web deep research on a given query using GPT Researcher.
     Use this tool when you need time-sensitive, real-time information like stock prices, news, people, specific knowledge, etc.
     
     Args:
         query: The research query or topic
+        report_type: Optional GPT Researcher report type. Defaults to research_report.
+        source_urls: Optional source URLs to scrape as first-class research sources.
+        complement_source_urls: Whether to complement source URLs with normal web research.
+        query_domains: Optional domains to restrict web search to.
         
     Returns:
         Dict containing research status, ID, and the actual research context and sources
@@ -108,11 +157,24 @@ async def deep_research(query: str) -> Dict[str, Any]:
     # Generate a unique ID for this research session
     research_id = str(uuid.uuid4())
     
-    # Initialize GPT Researcher
-    researcher = GPTResearcher(query)
-    
     # Start research
     try:
+        clean_source_urls = _clean_source_urls(source_urls)
+        clean_query_domains = _clean_list(query_domains, 20)
+        resolved_report_type = _resolve_report_type(report_type)
+        
+        researcher_args = {
+            "query": query,
+            "report_type": resolved_report_type,
+            "query_domains": clean_query_domains,
+        }
+        if clean_source_urls:
+            researcher_args["source_urls"] = clean_source_urls
+            researcher_args["complement_source_urls"] = complement_source_urls
+            
+        # Initialize GPT Researcher
+        researcher = GPTResearcher(**researcher_args)
+        
         await researcher.conduct_research()
         mcp.researchers[research_id] = researcher
         logger.info(f"Research completed for ID: {research_id}")
@@ -128,6 +190,10 @@ async def deep_research(query: str) -> Dict[str, Any]:
         return create_success_response({
             "research_id": research_id,
             "query": query,
+            "report_type": resolved_report_type,
+            "provided_source_urls": clean_source_urls,
+            "complement_source_urls": bool(complement_source_urls),
+            "query_domains": clean_query_domains,
             "source_count": len(sources),
             "context": context,
             "sources": format_sources_for_response(sources),
