@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # temp install fixed version of researcher
 RUN pip uninstall -y gpt-researcher
-RUN pip install --no-cache-dir --force-reinstall "gpt-researcher @ git+https://github.com/assafelovic/gpt-researcher.git@18d405166948e11b4a0304c0c4ec440bead9e4a5"
+RUN pip install --no-cache-dir --force-reinstall "gpt-researcher @ git+https://github.com/assafelovic/gpt-researcher.git@5d84d2f5553e70a2765a8ff3a0d2672d60437ce8"
 
 # Copy application code
 COPY . .
