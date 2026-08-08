@@ -1,5 +1,5 @@
 # GPT Researcher dependencies
-gpt-researcher>=0.14.0
+gpt-researcher @ git+https://github.com/assafelovic/gpt-researcher.git@06d2d27595922c345dd8bd1d8b4ad9dc0c07d8ca
 python-dotenv
 
 # MCP dependencies
