@@ -47,7 +47,7 @@ SUPPORTED_REPORT_TYPES = {
 }
 
 
-def _clean_list(values: Optional[List[Any]], limit: int = 20) -> List[str]:
+def _clean_list(values: Optional[List[Any]], limit: Optional[int] = None) -> List[str]:
     if values is None:
         return []
     if not isinstance(values, list):
@@ -55,7 +55,7 @@ def _clean_list(values: Optional[List[Any]], limit: int = 20) -> List[str]:
     return [str(value).strip() for value in values if str(value or "").strip()][:limit]
     
 def _clean_source_urls(source_urls: Optional[List[str]]) -> List[str]:
-    values = _clean_list(source_urls, 20)
+    values = _clean_list(source_urls)
     invalid_urls = [
         url for url in values if not url.startswith(("http://", "https://"))
     ]
@@ -160,7 +160,7 @@ async def deep_research(
     # Start research
     try:
         clean_source_urls = _clean_source_urls(source_urls)
-        clean_query_domains = _clean_list(query_domains, 20)
+        clean_query_domains = _clean_list(query_domains)
         resolved_report_type = _resolve_report_type(report_type)
         
         researcher_args = {
