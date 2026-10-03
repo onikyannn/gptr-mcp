@@ -1,16 +1,16 @@
 # GPT Researcher dependencies
-gpt-researcher>=0.16.0
-python-dotenv
+gpt-researcher==0.16.1
+python-dotenv==1.2.4
 
 # MCP dependencies
-fastmcp>=2.8.0
-fastapi>=0.103.1
-uvicorn>=0.23.2
-pydantic>=2.3.0
+fastmcp==3.4.7
+fastapi==0.142.2
+uvicorn==0.54.0
+pydantic==2.13.5
 
 # Utility dependencies
-loguru>=0.7.0
+loguru==0.7.3
 
 # Testing dependencies
-httpx>=0.24.0
-sseclient-py>=1.7.0
+httpx==0.28.1
+sseclient-py==1.9.0
