@@ -42,4 +42,5 @@ fi
 
 # Run the server
 echo "Starting GPT Researcher MCP Server..."
+python patch_researcher.py || exit 1
 python server.py 

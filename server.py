@@ -11,12 +11,15 @@ import uuid
 import logging
 from typing import Dict, Any, Optional, List
 from dotenv import load_dotenv
+
+# Set environment-backed logging options before importing the local adapters.
+load_dotenv()
+
 from fastapi.responses import JSONResponse
 from fastmcp import FastMCP
 from gpt_researcher import GPTResearcher
-
-# Load environment variables
-load_dotenv()
+from research_input import create_researcher, report_prompt_with_brief
+from research_diagnostics import log_event
 
 from utils import (
     research_store,
@@ -136,13 +139,15 @@ async def deep_research(
     source_urls: Optional[List[str]] = None,
     complement_source_urls: bool = True,
     query_domains: Optional[List[str]] = None,
+    research_brief: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Conduct a web deep research on a given query using GPT Researcher.
     Use this tool when you need time-sensitive, real-time information like stock prices, news, people, specific knowledge, etc.
     
     Args:
-        query: The research query or topic
+        query: A short, precise initial web search phrase when research_brief is supplied; otherwise the legacy research query.
+        research_brief: Optional complete LLM task, including the original request, constraints and context. It is never sent as a web search phrase.
         report_type: Optional GPT Researcher report type. Defaults to research_report.
         source_urls: Optional source URLs to scrape as first-class research sources.
         complement_source_urls: Whether to complement source URLs with normal web research.
@@ -173,8 +178,11 @@ async def deep_research(
             researcher_args["complement_source_urls"] = complement_source_urls
             
         # Initialize GPT Researcher
-        researcher = GPTResearcher(**researcher_args)
-        
+        log_event('research.request', research_id, research_brief=research_brief, arguments=researcher_args)
+        researcher = create_researcher(GPTResearcher, research_brief=research_brief, diagnostic_id=research_id, **researcher_args)
+        cfg = getattr(researcher, 'cfg', None)
+        config_fields = ('fast_llm_model', 'smart_llm_model', 'strategic_llm_model', 'fast_llm_provider', 'smart_llm_provider', 'strategic_llm_provider', 'max_iterations', 'retriever', 'retrievers', 'context_filter', 'curate_sources', 'deep_research_depth', 'deep_research_breadth', 'deep_research_concurrency')
+        log_event('research.config', research_id, configuration={key:getattr(cfg, key, None) for key in config_fields})
         await researcher.conduct_research()
         mcp.researchers[research_id] = researcher
         logger.info(f"Research completed for ID: {research_id}")
@@ -184,8 +192,13 @@ async def deep_research(
         sources = researcher.get_research_sources()
         source_urls = researcher.get_source_urls()
         
+        log_event('research.context', research_id, context=context)
+        log_event('research.sources', research_id, sources=sources, source_urls=source_urls)
         # Store in the research store for the resource API
-        store_research_results(query, context, sources, source_urls)
+        # Brief-specific results belong to their research_id, not a shared
+        # seed/topic alias that omits the user's constraints and dialogue.
+        if research_brief is None:
+            store_research_results(query, context, sources, source_urls)
         
         return create_success_response({
             "research_id": research_id,
@@ -200,6 +213,7 @@ async def deep_research(
             "source_urls": source_urls
         })
     except Exception as e:
+        log_event('research.error', research_id, error_type=type(e).__name__, error=str(e))
         return handle_exception(e, "Research")
 
 
@@ -241,13 +255,18 @@ async def quick_search(query: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def write_report(research_id: str, custom_prompt: Optional[str] = None) -> Dict[str, Any]:
+async def write_report(
+    research_id: str,
+    custom_prompt: Optional[str] = None,
+    include_research_brief: bool = True,
+) -> Dict[str, Any]:
     """
     Generate a report based on previously conducted research.
     
     Args:
         research_id: The ID of the research session from deep_research
         custom_prompt: Optional custom prompt for report generation
+        include_research_brief: Append the saved task unless the custom prompt already contains the complete writer task
         
     Returns:
         Dict containing the report content and metadata
@@ -260,18 +279,23 @@ async def write_report(research_id: str, custom_prompt: Optional[str] = None) ->
     
     try:
         # Generate report
-        report = await researcher.write_report(custom_prompt=custom_prompt)
+        writer_prompt = report_prompt_with_brief(
+            researcher, custom_prompt, include_research_brief=include_research_brief,
+        )
+        log_event('report.request', research_id, custom_prompt=writer_prompt, include_research_brief=include_research_brief, context=researcher.get_research_context(), task=researcher.query, agent_role=getattr(researcher, 'role', None))
+        report = await researcher.write_report(custom_prompt=writer_prompt)
         
         # Get additional information
         sources = researcher.get_research_sources()
         costs = researcher.get_costs()
-        
+        log_event('report.result', research_id, report=report, costs=costs, source_count=len(sources))
         return create_success_response({
             "report": report,
             "source_count": len(sources),
             "costs": costs
         })
     except Exception as e:
+        log_event('report.error', research_id, error_type=type(e).__name__, error=str(e))
         return handle_exception(e, "Report generation")
 
 
