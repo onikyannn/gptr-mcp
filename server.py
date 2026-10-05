@@ -18,6 +18,13 @@ load_dotenv()
 from fastapi.responses import JSONResponse
 from fastmcp import FastMCP
 from gpt_researcher import GPTResearcher
+
+# Override Jev's endpoint in memory; leave the installed package untouched.
+custom_jev_url = os.getenv("JEV_API_URL")
+if custom_jev_url:
+    from gpt_researcher.context import jev_filter
+    jev_filter.JEV_API_URL = custom_jev_url
+
 from research_input import create_researcher, report_prompt_with_brief
 from research_diagnostics import log_event
 
