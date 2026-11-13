@@ -74,7 +74,7 @@ For detailed setup instructions, see the [full Claude Desktop Integration sectio
 Before running the MCP server, make sure you have:
 
 1. Python 3.12 or higher installed
-   - **Important**: GPT Researcher 0.16.1 requires Python 3.12+
+   - **Important**: GPT Researcher 0.17.0 requires Python 3.12+
 2. API keys for the services you plan to use:
    - [OpenAI API key](https://platform.openai.com/api-keys)
    - [Tavily API key](https://app.tavily.com)
@@ -158,7 +158,7 @@ docker network create n8n-mcp-net
 docker network connect n8n-mcp-net gptr-mcp
 ```
 
-**Note**: The Docker image uses Python 3.14 with GPT Researcher 0.16.1. If you encounter errors during the build, ensure you're using the latest Dockerfile from this repository.
+**Note**: The Docker image uses Python 3.14 with GPT Researcher 0.17.0. If you encounter errors during the build, ensure you're using the latest Dockerfile from this repository.
 
 Once the server is running, you'll see output indicating that the server is ready to accept connections. You can verify it's working by:
 

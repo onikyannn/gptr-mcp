@@ -90,11 +90,11 @@ def _bind_researcher(researcher, factory, initial_query, research_brief, diagnos
         if deep_skill is not None:
             methods.append(deep_skill.deep_research)
             if not _has_code_constant(deep_skill.deep_research.__code__, '_child_researcher_factory'):
-                raise RuntimeError('Rebuild the researcher image: the 0.16.1 child-factory hook is missing')
+                raise RuntimeError('Rebuild the researcher image: the 0.17.0 child-factory hook is missing')
         for method in methods:
             if callable(method) and any(not _has_code_constant(method.__code__, hook)
                                         for hook in ('_gptr_input_error', '_gptr_gather')):
-                raise RuntimeError('Rebuild the researcher image: the 0.16.1 input-error hooks are missing')
+                raise RuntimeError('Rebuild the researcher image: the 0.17.0 input-error hooks are missing')
 
     if deep_skill is not None:
         def child_factory(*, query, **kwargs):

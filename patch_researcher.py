@@ -1,4 +1,4 @@
-"""Install compatibility hooks in the pinned GPT Researcher 0.16.1.
+"""Install compatibility hooks in the pinned GPT Researcher 0.17.0.
 
 Run while building the image, before importing GPT Researcher. Legacy callers
 still use the native factory; brief-bearing runs provide an instance-local one.
@@ -56,8 +56,8 @@ def patch_gather(source, expected_calls):
 
 def install():
     package = distribution('gpt-researcher')
-    if package.version != '0.16.1':
-        raise RuntimeError('Research input hooks support only gpt-researcher==0.16.1')
+    if package.version != '0.17.0':
+        raise RuntimeError('Research input hooks support only gpt-researcher==0.17.0')
     updates = []
     for name in ('deep_research.py', 'researcher.py'):
         path = package.locate_file('gpt_researcher/skills/' + name)
